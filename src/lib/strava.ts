@@ -7,6 +7,7 @@ export type StravaActivity = {
   type: string;
   sport_type: string;
   start_date: string;
+  start_date_local?: string;
   moving_time: number;
   distance: number;
   total_elevation_gain: number;

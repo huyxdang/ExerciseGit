@@ -59,7 +59,7 @@ async function syncActivities(userId: string, accessToken: string) {
     const rows = activities.map((a) => ({
       user_id: userId,
       strava_activity_id: a.id,
-      date: a.start_date.slice(0, 10),
+      date: (a.start_date_local ?? a.start_date).slice(0, 10),
     }));
     if (rows.length > 0) {
       await db.from("activities").upsert(rows, { onConflict: "strava_activity_id" });

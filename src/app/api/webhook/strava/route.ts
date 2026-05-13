@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     {
       user_id: user.id,
       strava_activity_id: activity.id,
-      date: activity.start_date.slice(0, 10),
+      date: (activity.start_date_local ?? activity.start_date).slice(0, 10),
     },
     { onConflict: "strava_activity_id" }
   );
