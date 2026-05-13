@@ -1,10 +1,21 @@
 # ExerciseGit
 
-A web service that connects to your Strava account and generates a GitHub-style contribution heatmap of your workout history. Each day is a single square — green if you worked out, empty if not. The graph is served as a dynamic SVG you can embed anywhere with a single image link.
+A web service that connects your GitHub username to your Strava account and
+generates a GitHub-style contribution heatmap of your workout history. Each day
+is a single square: green if you worked out, empty if not. The graph is served
+as a dynamic SVG you can embed anywhere with a single image link.
+
+## User Flow
+
+1. Enter your GitHub username on the home page.
+2. Connect Strava and authorize activity read access.
+3. ExerciseGit syncs your Strava activities and publishes your profile at
+   `/profile/your-github-username`.
+4. Copy the README snippet or SVG URL from your profile.
 
 ## Embed
 
-Add this to your GitHub README, replacing `yourusername` with your ExerciseGit username:
+Add this to your GitHub README, replacing `yourusername` with your GitHub username:
 
 ```md
 ![My Workouts](https://exercisegit.io/api/graph/yourusername.svg)
@@ -96,8 +107,9 @@ src/
       auth/strava/          # OAuth redirect
       auth/strava/callback/ # OAuth callback, token storage, initial activity sync
       webhook/strava/       # Real-time Strava activity events
-      graph/[username]/     # Embeddable SVG endpoint
+      graph/[username]/     # Embeddable SVG endpoint; accepts username.svg
   lib/
+    github.ts               # GitHub username validation and URL helpers
     strava.ts               # Strava OAuth, token refresh, activity fetching
     svg.ts                  # SVG heatmap generator
 supabase/
@@ -108,7 +120,7 @@ supabase/
 
 Two tables:
 
-- **users** — `strava_user_id`, `username`, OAuth access/refresh tokens
+- **users** — `strava_user_id`, GitHub `username`, OAuth access/refresh tokens
 - **activities** — `user_id`, `strava_activity_id`, `date`
 
 ## License

@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeGithubUsername, stripSvgExtension } from "@/lib/github";
 import { generateSvg, Theme } from "@/lib/svg";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -6,8 +7,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  const { username } = await params;
-  const theme = (req.nextUrl.searchParams.get("theme") ?? "github") as Theme;
+  const { username: rawUsername } = await params;
+  const username = normalizeGithubUsername(stripSvgExtension(rawUsername));
+  const themeParam = req.nextUrl.searchParams.get("theme");
+  const theme: Theme = themeParam === "strava" ? "strava" : "github";
+
+  if (!username) {
+    return NextResponse.json({ error: "Invalid username" }, { status: 400 });
+  }
 
   const db = createAdminClient();
   const { data: user } = await db
