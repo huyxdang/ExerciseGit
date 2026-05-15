@@ -11,7 +11,13 @@ const GAP = 3;
 const STEP = CELL + GAP;
 const WEEKS = 52;
 const DAYS = 7;
-const PADDING = { top: 20, left: 28, right: 16, bottom: 8 };
+const PADDING = { top: 20, left: 28, right: 16, bottom: 24 };
+
+// Minutes of moving time per day that map to the most intense color.
+const INTENSITY_MAX_MINUTES = 90;
+// Any workout gets at least this far along the empty -> active ramp, so short
+// sessions (and workouts with no usable duration) stay visible.
+const INTENSITY_FLOOR = 0.4;
 
 const THEMES = {
   github: {
@@ -33,6 +39,29 @@ const THEMES = {
     text: "#888888",
   },
 };
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+
+function rgbToHex(rgb) {
+  return "#" + rgb.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+}
+
+function mixColor(from, to, t) {
+  const a = hexToRgb(from);
+  const b = hexToRgb(to);
+  return rgbToHex(a.map((v, i) => v + (b[i] - v) * t));
+}
+
+// Fraction (0-1) along the empty -> active ramp for a day's total minutes.
+// A day with a workout but no usable duration falls back to the floor color.
+function intensityFraction(minutes) {
+  if (!minutes || minutes <= 0) return INTENSITY_FLOOR;
+  const span = 1 - INTENSITY_FLOOR;
+  return INTENSITY_FLOOR + span * Math.min(minutes / INTENSITY_MAX_MINUTES, 1);
+}
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -126,7 +155,7 @@ async function fetchRecentActivities(accessToken) {
   }
 }
 
-function generateSvg(activeDates, themeName) {
+function generateSvg(dayMinutes, themeName) {
   const colors = THEMES[themeName] ?? THEMES.github;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -150,7 +179,9 @@ function generateSvg(activeDates, themeName) {
       const key = dateKey(date);
       const x = PADDING.left + week * STEP;
       const y = PADDING.top + day * STEP;
-      const fill = activeDates.has(key) ? colors.active : colors.empty;
+      const fill = dayMinutes.has(key)
+        ? mixColor(colors.empty, colors.active, intensityFraction(dayMinutes.get(key)))
+        : colors.empty;
 
       cells.push(
         `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${fill}"><title>${key}</title></rect>`
@@ -171,10 +202,31 @@ function generateSvg(activeDates, themeName) {
     )
     .join("\n");
 
+  // Legend: "Less [gradient bar] More", right-aligned below the grid.
+  const legendBarWidth = 70;
+  const legendBarHeight = 10;
+  const legendY = PADDING.top + DAYS * STEP - GAP + 16;
+  const moreX = width - PADDING.right;
+  const barEndX = moreX - 24;
+  const barStartX = barEndX - legendBarWidth;
+  const lessX = barStartX - 6;
+  const legendFloorColor = mixColor(colors.empty, colors.active, INTENSITY_FLOOR);
+
+  const legendSvg = `<defs>
+    <linearGradient id="intensity" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="${legendFloorColor}"/>
+      <stop offset="1" stop-color="${colors.active}"/>
+    </linearGradient>
+  </defs>
+  <text x="${lessX}" y="${legendY}" text-anchor="end" fill="${colors.text}" font-size="9" font-family="system-ui,sans-serif">Less</text>
+  <rect x="${barStartX}" y="${legendY - legendBarHeight + 1}" width="${legendBarWidth}" height="${legendBarHeight}" rx="2" fill="url(#intensity)"/>
+  <text x="${barEndX + 6}" y="${legendY}" fill="${colors.text}" font-size="9" font-family="system-ui,sans-serif">More</text>`;
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <rect width="${width}" height="${height}" rx="6" fill="${colors.bg}"/>
   ${monthSvg}
   ${cells.join("\n  ")}
+  ${legendSvg}
 </svg>
 `;
 }
@@ -191,14 +243,23 @@ async function main() {
         : "github";
   const tokens = await refreshAccessToken();
   const activities = await fetchRecentActivities(tokens.access_token);
-  const activeDates = new Set(activities.map(localActivityDate));
-  const svg = generateSvg(activeDates, theme);
+
+  // Sum moving time (minutes) per day. A day stays in the map even with 0
+  // minutes, so a workout with no usable duration still gets the floor color.
+  const dayMinutes = new Map();
+  for (const activity of activities) {
+    const key = localActivityDate(activity);
+    const minutes = (activity.moving_time ?? 0) / 60;
+    dayMinutes.set(key, (dayMinutes.get(key) ?? 0) + minutes);
+  }
+
+  const svg = generateSvg(dayMinutes, theme);
 
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, svg, "utf8");
 
   console.log(`Wrote ${outputPath}`);
-  console.log(`Active days in the last 52 weeks: ${activeDates.size}`);
+  console.log(`Active days in the last 52 weeks: ${dayMinutes.size}`);
   console.log("");
   console.log("README examples:");
   console.log("![ExerciseGit](https://YOUR_DOMAIN.com/exercise.svg)");
