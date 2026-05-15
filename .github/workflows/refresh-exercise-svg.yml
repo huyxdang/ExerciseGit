@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
 
+env:
+  EXERCISE_SVG_PATH: public/exercise.svg
+  PROFILE_README_REPOSITORY: ${{ vars.PROFILE_README_REPOSITORY || format('{0}/{0}', github.repository_owner) }}
+  SVG_THEME: github-strava
+
 concurrency:
   group: refresh-exercise-svg
   cancel-in-progress: false
@@ -31,8 +36,7 @@ jobs:
           STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
           STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
           STRAVA_REFRESH_TOKEN_FILE: .strava-refresh-token
-          SVG_THEME: github-strava
-          OUTPUT_SVG: public/exercise.svg
+          OUTPUT_SVG: ${{ env.EXERCISE_SVG_PATH }}
         run: npm run generate:svg
 
       - name: Save rotated Strava refresh token
@@ -49,22 +53,24 @@ jobs:
             exit 0
           fi
 
-          GH_TOKEN="$SECRET_UPDATER_TOKEN" gh secret set STRAVA_REFRESH_TOKEN < .strava-refresh-token
+          if ! GH_TOKEN="$SECRET_UPDATER_TOKEN" gh secret set STRAVA_REFRESH_TOKEN < .strava-refresh-token; then
+            echo "::warning::Strava returned a new refresh token, but SECRET_UPDATER_TOKEN could not update STRAVA_REFRESH_TOKEN. Update STRAVA_REFRESH_TOKEN manually before the next run."
+          fi
           rm .strava-refresh-token
 
       - name: Commit SVG if changed
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Refresh exercise SVG"
-          file_pattern: public/exercise.svg
+          file_pattern: ${{ env.EXERCISE_SVG_PATH }}
 
       - name: Check profile README token
         id: profile-readme-token
         env:
-          PROFILE_README_TOKEN: ${{ secrets.SECRET_UPDATER_TOKEN }}
+          PROFILE_README_TOKEN: ${{ secrets.PROFILE_README_TOKEN || secrets.SECRET_UPDATER_TOKEN }}
         run: |
           if [ -z "$PROFILE_README_TOKEN" ]; then
-            echo "::warning::SECRET_UPDATER_TOKEN is not configured, so the profile README SVG cache key will not be refreshed."
+            echo "::warning::PROFILE_README_TOKEN is not configured, so the profile README SVG cache key will not be refreshed."
             echo "available=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -77,13 +83,13 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@v4
         with:
-          repository: huyxdang/huyxdang
-          token: ${{ secrets.SECRET_UPDATER_TOKEN }}
+          repository: ${{ env.PROFILE_README_REPOSITORY }}
+          token: ${{ secrets.PROFILE_README_TOKEN || secrets.SECRET_UPDATER_TOKEN }}
           path: profile-readme
 
       - name: Warn if profile README checkout failed
         if: steps.profile-readme-token.outputs.available == 'true' && steps.profile-readme-checkout.outcome != 'success'
-        run: echo "::warning::Could not check out huyxdang/huyxdang. Make sure SECRET_UPDATER_TOKEN can read and write that repository."
+        run: echo "::warning::Could not check out $PROFILE_README_REPOSITORY. Make sure PROFILE_README_TOKEN can read and write that repository."
 
       - name: Bump profile README SVG cache
         if: steps.profile-readme-token.outputs.available == 'true' && steps.profile-readme-checkout.outcome == 'success'
@@ -93,10 +99,14 @@ jobs:
           const fs = require("node:fs");
 
           const readmePath = "README.md";
-          const rawUrl = "https://raw.githubusercontent.com/huyxdang/ExerciseGit/main/public/exercise.svg";
+          const branch = process.env.GITHUB_REF_NAME || "main";
+          const sourceRepo = process.env.GITHUB_REPOSITORY;
+          const svgPath = process.env.EXERCISE_SVG_PATH;
+          const rawUrl = `https://raw.githubusercontent.com/${sourceRepo}/${branch}/${svgPath}`;
           const cacheKey = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
           const readme = fs.readFileSync(readmePath, "utf8");
-          const pattern = /https:\/\/raw\.githubusercontent\.com\/huyxdang\/ExerciseGit\/main\/public\/exercise\.svg(?:\?v=[^"'\s<>)]*)?/g;
+          const escapedRawUrl = rawUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const pattern = new RegExp(`${escapedRawUrl}(?:\\?v=[^"'\\s<>)]*)?`, "g");
           const updated = readme.replace(pattern, `${rawUrl}?v=${cacheKey}`);
 
           if (updated === readme) {
@@ -114,6 +124,6 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Refresh ExerciseGit SVG cache"
           if ! git push; then
-            echo "::warning::Could not push the profile README cache refresh. Make sure SECRET_UPDATER_TOKEN has contents write access to huyxdang/huyxdang."
+            echo "::warning::Could not push the profile README cache refresh. Make sure PROFILE_README_TOKEN has contents write access to $PROFILE_README_REPOSITORY."
             exit 0
           fi
