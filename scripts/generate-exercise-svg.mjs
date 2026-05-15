@@ -67,7 +67,10 @@ async function loadEnvFile(path = ".env.mvp") {
 }
 
 function dateKey(date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function localActivityDate(activity) {
@@ -129,8 +132,7 @@ function generateSvg(activeDates, themeName) {
   today.setHours(0, 0, 0, 0);
 
   const startDay = new Date(today);
-  startDay.setDate(today.getDate() - WEEKS * 7 + 1);
-  startDay.setDate(startDay.getDate() - startDay.getDay());
+  startDay.setDate(today.getDate() - today.getDay() - (WEEKS - 1) * 7);
 
   const width = PADDING.left + WEEKS * STEP - GAP + PADDING.right;
   const height = PADDING.top + DAYS * STEP - GAP + PADDING.bottom;

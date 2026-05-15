@@ -22,15 +22,20 @@ const WEEKS = 52;
 const DAYS = 7;
 const PADDING = { top: 20, left: 28, right: 16, bottom: 8 };
 
+function dateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function generateSvg(activeDates: Set<string>, theme: Theme = "github"): string {
   const colors = THEMES[theme];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const startDay = new Date(today);
-  startDay.setDate(today.getDate() - WEEKS * 7 + 1);
-  // align to Sunday
-  startDay.setDate(startDay.getDate() - startDay.getDay());
+  startDay.setDate(today.getDate() - today.getDay() - (WEEKS - 1) * 7);
 
   const width = PADDING.left + WEEKS * STEP - GAP + PADDING.right;
   const height = PADDING.top + DAYS * STEP - GAP + PADDING.bottom;
@@ -47,7 +52,7 @@ export function generateSvg(activeDates: Set<string>, theme: Theme = "github"): 
       date.setDate(startDay.getDate() + w * 7 + d);
       if (date > today) continue;
 
-      const key = date.toISOString().slice(0, 10);
+      const key = dateKey(date);
       const active = activeDates.has(key);
       const fill = active ? colors.active : colors.empty;
 
