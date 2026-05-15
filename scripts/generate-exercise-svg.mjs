@@ -205,9 +205,13 @@ async function main() {
   console.log("![ExerciseGit](https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/public/exercise.svg)");
 
   if (tokens.refresh_token && tokens.refresh_token !== process.env.STRAVA_REFRESH_TOKEN) {
-    console.log("");
-    console.log("Update STRAVA_REFRESH_TOKEN before the next run:");
-    console.log(tokens.refresh_token);
+    if (process.env.STRAVA_REFRESH_TOKEN_FILE) {
+      await writeFile(process.env.STRAVA_REFRESH_TOKEN_FILE, tokens.refresh_token, "utf8");
+    } else {
+      console.log("");
+      console.log("Update STRAVA_REFRESH_TOKEN before the next run:");
+      console.log(tokens.refresh_token);
+    }
   }
 }
 

@@ -82,6 +82,27 @@ Optional settings:
 Strava can rotate refresh tokens. If the script prints a new
 `STRAVA_REFRESH_TOKEN`, use that value for the next run.
 
+### Automatic README Updates
+
+The workflow in `.github/workflows/refresh-exercise-svg.yml` regenerates
+`public/exercise.svg` every hour and commits it if the file changed.
+
+Add these repository secrets in GitHub under
+**Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Value |
+|--------|-------|
+| `STRAVA_CLIENT_ID` | Your Strava app client ID |
+| `STRAVA_CLIENT_SECRET` | Your Strava app client secret |
+| `STRAVA_REFRESH_TOKEN` | Your current Strava refresh token |
+| `SECRET_UPDATER_TOKEN` | A GitHub token that can update repository secrets |
+
+You can test it manually from **Actions → Refresh exercise SVG → Run workflow**.
+
+`SECRET_UPDATER_TOKEN` lets the workflow save Strava's rotated refresh token
+back into `STRAVA_REFRESH_TOKEN`. Use a GitHub classic personal access token
+with `repo` scope for a private repo, or `public_repo` scope for a public repo.
+
 ## Tech Stack
 
 - **Next.js** — App Router, TypeScript

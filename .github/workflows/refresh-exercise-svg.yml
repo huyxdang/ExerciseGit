@@ -1,0 +1,59 @@
+name: Refresh exercise SVG
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-exercise-svg
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Generate SVG
+        env:
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+          STRAVA_REFRESH_TOKEN_FILE: .strava-refresh-token
+          SVG_THEME: github-strava
+          OUTPUT_SVG: public/exercise.svg
+        run: npm run generate:svg
+
+      - name: Save rotated Strava refresh token
+        env:
+          SECRET_UPDATER_TOKEN: ${{ secrets.SECRET_UPDATER_TOKEN }}
+        run: |
+          if [ ! -s .strava-refresh-token ]; then
+            exit 0
+          fi
+
+          if [ -z "$SECRET_UPDATER_TOKEN" ]; then
+            echo "::warning::Strava returned a new refresh token, but SECRET_UPDATER_TOKEN is not configured. Update STRAVA_REFRESH_TOKEN manually before the next run."
+            rm .strava-refresh-token
+            exit 0
+          fi
+
+          GH_TOKEN="$SECRET_UPDATER_TOKEN" gh secret set STRAVA_REFRESH_TOKEN < .strava-refresh-token
+          rm .strava-refresh-token
+
+      - name: Commit SVG if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Refresh exercise SVG"
+          file_pattern: public/exercise.svg
