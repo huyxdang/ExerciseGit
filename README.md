@@ -32,6 +32,56 @@ Two themes are available via the `?theme` query parameter:
 ![My Workouts](https://exercisegit.io/api/graph/yourusername.svg?theme=strava)
 ```
 
+## Static MVP
+
+If you just want a quick single-user SVG for your own GitHub README, skip the
+Supabase and OAuth app flow and generate a static file:
+
+```bash
+cp env.mvp.example .env.mvp
+npm run strava:token
+npm run generate:svg
+```
+
+Fill in `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` in `.env.mvp` before
+running the commands. `npm run strava:token` prints a Strava authorization URL.
+After approving access, copy the `code` from the redirected URL and exchange it:
+
+```bash
+STRAVA_CODE=the-code-from-strava npm run strava:token
+```
+
+Put the printed `STRAVA_REFRESH_TOKEN` into `.env.mvp`, then run
+`npm run generate:svg`.
+
+This writes:
+
+```txt
+public/exercise.svg
+```
+
+Use either a deployed public URL:
+
+```md
+![ExerciseGit](https://your-domain.com/exercise.svg)
+```
+
+Or commit the file and embed it from raw GitHub content:
+
+```md
+![ExerciseGit](https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/public/exercise.svg)
+```
+
+Optional settings:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OUTPUT_SVG` | `public/exercise.svg` | Output file path |
+| `SVG_THEME` | `github` | Use `github` or `strava` |
+
+Strava can rotate refresh tokens. If the script prints a new
+`STRAVA_REFRESH_TOKEN`, use that value for the next run.
+
 ## Tech Stack
 
 - **Next.js** — App Router, TypeScript

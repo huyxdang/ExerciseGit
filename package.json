@@ -6,7 +6,9 @@
     "dev": "node node_modules/next/dist/bin/next dev",
     "build": "node node_modules/next/dist/bin/next build",
     "start": "node node_modules/next/dist/bin/next start",
-    "lint": "node node_modules/eslint/bin/eslint.js"
+    "lint": "node node_modules/eslint/bin/eslint.js",
+    "strava:token": "node scripts/get-strava-refresh-token.mjs",
+    "generate:svg": "node scripts/generate-exercise-svg.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
