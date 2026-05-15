@@ -1,10 +1,8 @@
 # ExerciseGit
 
-> _a workout a day, keeps the doctors away_
->
-> _a mega-developer is one that's both brain and brawn_
-
-Generate GitHub Tracker for your Strava exercises.
+<p align="center">
+  <strong><em>Github tracker for your Strava workouts!</em></strong>
+</p>
 
 ## Setup
 
