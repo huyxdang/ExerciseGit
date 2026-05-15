@@ -39,11 +39,12 @@ function requireEnv(name) {
 
 function printAuthorizeUrl() {
   const redirectUri = process.env.STRAVA_REDIRECT_URI ?? "http://localhost";
+  const scope = process.env.STRAVA_SCOPES ?? "activity:read_all";
   const params = new URLSearchParams({
     client_id: requireEnv("STRAVA_CLIENT_ID"),
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "activity:read_all",
+    scope,
   });
 
   console.log("Open this URL, approve access, then copy the code= value from the redirected URL:");
