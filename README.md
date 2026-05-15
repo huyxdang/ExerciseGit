@@ -77,7 +77,7 @@ Optional settings:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OUTPUT_SVG` | `public/exercise.svg` | Output file path |
-| `SVG_THEME` | `github` | Use `github` or `strava` |
+| `SVG_THEME` | `github-strava` | Use `github`, `github-strava`, or `strava` |
 
 Strava can rotate refresh tokens. If the script prints a new
 `STRAVA_REFRESH_TOKEN`, use that value for the next run.

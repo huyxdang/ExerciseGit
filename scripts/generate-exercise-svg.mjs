@@ -20,6 +20,12 @@ const THEMES = {
     active: "#39d353",
     text: "#8b949e",
   },
+  githubStrava: {
+    bg: "#0d1117",
+    empty: "#161b22",
+    active: "#fc4c02",
+    text: "#8b949e",
+  },
   strava: {
     bg: "#1a1a1a",
     empty: "#2a2a2a",
@@ -175,7 +181,12 @@ async function main() {
   await loadEnvFile();
 
   const outputPath = resolve(process.env.OUTPUT_SVG ?? "public/exercise.svg");
-  const theme = process.env.SVG_THEME === "strava" ? "strava" : "github";
+  const theme =
+    process.env.SVG_THEME === "strava"
+      ? "strava"
+      : process.env.SVG_THEME === "github-strava"
+        ? "githubStrava"
+        : "github";
   const tokens = await refreshAccessToken();
   const activities = await fetchRecentActivities(tokens.access_token);
   const activeDates = new Set(activities.map(localActivityDate));
