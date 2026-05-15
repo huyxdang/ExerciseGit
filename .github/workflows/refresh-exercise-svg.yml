@@ -58,14 +58,35 @@ jobs:
           commit_message: "Refresh exercise SVG"
           file_pattern: public/exercise.svg
 
+      - name: Check profile README token
+        id: profile-readme-token
+        env:
+          PROFILE_README_TOKEN: ${{ secrets.SECRET_UPDATER_TOKEN }}
+        run: |
+          if [ -z "$PROFILE_README_TOKEN" ]; then
+            echo "::warning::SECRET_UPDATER_TOKEN is not configured, so the profile README SVG cache key will not be refreshed."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
       - name: Check out profile README repository
+        id: profile-readme-checkout
+        if: steps.profile-readme-token.outputs.available == 'true'
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           repository: huyxdang/huyxdang
           token: ${{ secrets.SECRET_UPDATER_TOKEN }}
           path: profile-readme
 
+      - name: Warn if profile README checkout failed
+        if: steps.profile-readme-token.outputs.available == 'true' && steps.profile-readme-checkout.outcome != 'success'
+        run: echo "::warning::Could not check out huyxdang/huyxdang. Make sure SECRET_UPDATER_TOKEN can read and write that repository."
+
       - name: Bump profile README SVG cache
+        if: steps.profile-readme-token.outputs.available == 'true' && steps.profile-readme-checkout.outcome == 'success'
         working-directory: profile-readme
         run: |
           node <<'NODE'
@@ -92,4 +113,7 @@ jobs:
           git add README.md
           git diff --cached --quiet && exit 0
           git commit -m "Refresh ExerciseGit SVG cache"
-          git push
+          if ! git push; then
+            echo "::warning::Could not push the profile README cache refresh. Make sure SECRET_UPDATER_TOKEN has contents write access to huyxdang/huyxdang."
+            exit 0
+          fi
