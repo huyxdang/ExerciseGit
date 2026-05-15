@@ -4,6 +4,10 @@
   <strong><em>Github tracker for your Strava workouts!</em></strong>
 </p>
 
+<p align="center">
+  <img src="public/exercise_demo.svg" alt="ExerciseGit demo" width="100%" />
+</p>
+
 ## Setup
 
 1. Fork this repo.
