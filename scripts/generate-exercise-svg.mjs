@@ -11,7 +11,7 @@ const GAP = 3;
 const STEP = CELL + GAP;
 const WEEKS = 52;
 const DAYS = 7;
-const PADDING = { top: 20, left: 28, right: 16, bottom: 24 };
+const PADDING = { top: 20, left: 28, right: 16, bottom: 8 };
 
 // Minutes of moving time per day that map to the most intense color.
 const INTENSITY_MAX_MINUTES = 90;
@@ -202,31 +202,10 @@ function generateSvg(dayMinutes, themeName) {
     )
     .join("\n");
 
-  // Legend: "Less [gradient bar] More", right-aligned below the grid.
-  const legendBarWidth = 70;
-  const legendBarHeight = 10;
-  const legendY = PADDING.top + DAYS * STEP - GAP + 16;
-  const moreX = width - PADDING.right;
-  const barEndX = moreX - 24;
-  const barStartX = barEndX - legendBarWidth;
-  const lessX = barStartX - 6;
-  const legendFloorColor = mixColor(colors.empty, colors.active, INTENSITY_FLOOR);
-
-  const legendSvg = `<defs>
-    <linearGradient id="intensity" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="${legendFloorColor}"/>
-      <stop offset="1" stop-color="${colors.active}"/>
-    </linearGradient>
-  </defs>
-  <text x="${lessX}" y="${legendY}" text-anchor="end" fill="${colors.text}" font-size="9" font-family="system-ui,sans-serif">Less</text>
-  <rect x="${barStartX}" y="${legendY - legendBarHeight + 1}" width="${legendBarWidth}" height="${legendBarHeight}" rx="2" fill="url(#intensity)"/>
-  <text x="${barEndX + 6}" y="${legendY}" fill="${colors.text}" font-size="9" font-family="system-ui,sans-serif">More</text>`;
-
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <rect width="${width}" height="${height}" rx="6" fill="${colors.bg}"/>
   ${monthSvg}
   ${cells.join("\n  ")}
-  ${legendSvg}
 </svg>
 `;
 }
