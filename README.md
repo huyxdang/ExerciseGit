@@ -1,7 +1,7 @@
 # ExerciseGit
 
 <p align="center">
-  <strong><em>Github tracker for your Strava workouts!</em></strong>
+  <strong><em>Show 'em both brain and brawn 💪</em></strong>
 </p>
 
 <p align="center">
