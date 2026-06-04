@@ -18,6 +18,7 @@ const INTENSITY_MAX_MINUTES = 90;
 // Any workout gets at least this far along the empty -> active ramp, so short
 // sessions (and workouts with no usable duration) stay visible.
 const INTENSITY_FLOOR = 0.4;
+const RETRY_DELAYS_MS = [1000, 3000, 7000];
 
 const THEMES = {
   github: {
@@ -71,6 +72,39 @@ function requireEnv(name) {
   return value;
 }
 
+function delay(ms) {
+  return new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
+}
+
+async function fetchWithRetry(url, options, label) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (![408, 429, 500, 502, 503, 504].includes(response.status)) {
+        return response;
+      }
+
+      lastError = new Error(`${label} failed with retryable status ${response.status}`);
+      if (attempt === RETRY_DELAYS_MS.length) {
+        return response;
+      }
+    } catch (error) {
+      lastError = error;
+      if (attempt === RETRY_DELAYS_MS.length) {
+        throw error;
+      }
+    }
+
+    const waitMs = RETRY_DELAYS_MS[attempt];
+    console.log(`${label} failed; retrying in ${waitMs / 1000}s...`);
+    await delay(waitMs);
+  }
+
+  throw lastError;
+}
+
 async function loadEnvFile(path = ".env.mvp") {
   let text;
   try {
@@ -107,19 +141,28 @@ function localActivityDate(activity) {
 }
 
 async function refreshAccessToken() {
-  const response = await fetch(STRAVA_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: requireEnv("STRAVA_CLIENT_ID"),
-      client_secret: requireEnv("STRAVA_CLIENT_SECRET"),
-      refresh_token: requireEnv("STRAVA_REFRESH_TOKEN"),
-      grant_type: "refresh_token",
-    }),
-  });
+  const response = await fetchWithRetry(
+    STRAVA_TOKEN_URL,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: requireEnv("STRAVA_CLIENT_ID"),
+        client_secret: requireEnv("STRAVA_CLIENT_SECRET"),
+        refresh_token: requireEnv("STRAVA_REFRESH_TOKEN"),
+        grant_type: "refresh_token",
+      }),
+    },
+    "Strava token refresh"
+  );
 
   if (!response.ok) {
     const body = await response.text();
+    if (response.status === 400 || response.status === 401) {
+      console.error(
+        "STRAVA_REFRESH_TOKEN is invalid or stale. Re-run `npm run strava:token` locally and update the GitHub Actions secret."
+      );
+    }
     throw new Error(`Strava token refresh failed (${response.status}): ${body}`);
   }
 
@@ -137,9 +180,13 @@ async function fetchRecentActivities(accessToken) {
       after: String(after),
     });
 
-    const response = await fetch(`${STRAVA_API}/athlete/activities?${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const response = await fetchWithRetry(
+      `${STRAVA_API}/athlete/activities?${params}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+      "Strava activity fetch"
+    );
 
     if (!response.ok) {
       const body = await response.text();

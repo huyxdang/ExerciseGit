@@ -126,12 +126,13 @@ Optional extras:
 | Secret | Value |
 | --- | --- |
 | `PROFILE_README_TOKEN` | Fine-grained PAT that can update your profile README |
-| `SECRET_UPDATER_TOKEN` | Optional token that can update this repo's Actions secrets |
+| `SECRET_UPDATER_TOKEN` | Token that can update this repo's Actions secrets after Strava rotates the refresh token |
 
 `PROFILE_README_TOKEN` is for pushing the cache-busted SVG URL to your profile
 README. `SECRET_UPDATER_TOKEN` is only for saving Strava's rotated refresh token
-back into `STRAVA_REFRESH_TOKEN`; if it is missing or underpowered, the workflow
-prints a warning and you can update `STRAVA_REFRESH_TOKEN` manually.
+back into `STRAVA_REFRESH_TOKEN`; if it is missing or underpowered when Strava
+rotates the token, the workflow fails so you can update `STRAVA_REFRESH_TOKEN`
+manually before the next run.
 
 ## Files
 

@@ -48,13 +48,15 @@ jobs:
           fi
 
           if [ -z "$SECRET_UPDATER_TOKEN" ]; then
-            echo "::warning::Strava returned a new refresh token, but SECRET_UPDATER_TOKEN is not configured. Update STRAVA_REFRESH_TOKEN manually before the next run."
+            echo "::error::Strava returned a new refresh token, but SECRET_UPDATER_TOKEN is not configured. Update STRAVA_REFRESH_TOKEN manually before the next run."
             rm .strava-refresh-token
-            exit 0
+            exit 1
           fi
 
           if ! GH_TOKEN="$SECRET_UPDATER_TOKEN" gh secret set STRAVA_REFRESH_TOKEN < .strava-refresh-token; then
-            echo "::warning::Strava returned a new refresh token, but SECRET_UPDATER_TOKEN could not update STRAVA_REFRESH_TOKEN. Update STRAVA_REFRESH_TOKEN manually before the next run."
+            echo "::error::Strava returned a new refresh token, but SECRET_UPDATER_TOKEN could not update STRAVA_REFRESH_TOKEN. Update STRAVA_REFRESH_TOKEN manually before the next run."
+            rm .strava-refresh-token
+            exit 1
           fi
           rm .strava-refresh-token
 
