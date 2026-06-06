@@ -57,8 +57,8 @@ function printAuthorizeUrl() {
 async function exchangeCode(code) {
   const response = await fetch(STRAVA_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
       client_id: requireEnv("STRAVA_CLIENT_ID"),
       client_secret: requireEnv("STRAVA_CLIENT_SECRET"),
       code,

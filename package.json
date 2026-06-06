@@ -7,6 +7,7 @@
   },
   "scripts": {
     "strava:token": "node scripts/get-strava-refresh-token.mjs",
-    "generate:svg": "node scripts/generate-exercise-svg.mjs"
+    "generate:svg": "node scripts/generate-exercise-svg.mjs",
+    "test": "node --test"
   }
 }
