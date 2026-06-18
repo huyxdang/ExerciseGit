@@ -5,6 +5,7 @@ import {
   fetchWithRetry,
   refreshAccessToken,
   retryReasonForResponse,
+  TransientStravaBlockError,
   truncateText,
 } from "../scripts/generate-exercise-svg.mjs";
 
@@ -73,6 +74,40 @@ test("400 and 401 token responses fail fast", async () => {
     });
 
     assert.equal(reason, "");
+  }
+});
+
+test("CloudFront token blocks are classified as transient after retries", async () => {
+  const previousEnv = {
+    STRAVA_CLIENT_ID: process.env.STRAVA_CLIENT_ID,
+    STRAVA_CLIENT_SECRET: process.env.STRAVA_CLIENT_SECRET,
+    STRAVA_REFRESH_TOKEN: process.env.STRAVA_REFRESH_TOKEN,
+  };
+  process.env.STRAVA_CLIENT_ID = "123";
+  process.env.STRAVA_CLIENT_SECRET = "secret";
+  process.env.STRAVA_REFRESH_TOKEN = "refresh";
+
+  try {
+    await assert.rejects(
+      () =>
+        refreshAccessToken({
+          delayFn: async () => {},
+          fetchFn: async () =>
+            new Response(cloudFrontBlockHtml, {
+              status: 403,
+              headers: { "Content-Type": "text/html" },
+            }),
+        }),
+      TransientStravaBlockError
+    );
+  } finally {
+    for (const [key, value] of Object.entries(previousEnv)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
   }
 });
 

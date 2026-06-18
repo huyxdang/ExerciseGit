@@ -31,15 +31,18 @@ jobs:
           node-version: "22"
 
       - name: Generate SVG
+        id: generate-svg
         env:
           STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
           STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
           STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
           STRAVA_REFRESH_TOKEN_FILE: .strava-refresh-token
           OUTPUT_SVG: ${{ env.EXERCISE_SVG_PATH }}
+          ALLOW_STALE_ON_STRAVA_BLOCK: "true"
         run: npm run generate:svg
 
       - name: Save rotated Strava refresh token
+        if: steps.generate-svg.outputs.svg_generated != 'false'
         env:
           SECRET_UPDATER_TOKEN: ${{ secrets.SECRET_UPDATER_TOKEN }}
         run: |
@@ -61,6 +64,7 @@ jobs:
           rm .strava-refresh-token
 
       - name: Commit SVG if changed
+        if: steps.generate-svg.outputs.svg_generated != 'false'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Refresh exercise SVG"
@@ -71,6 +75,7 @@ jobs:
 
       - name: Check profile README token
         id: profile-readme-token
+        if: steps.generate-svg.outputs.svg_generated != 'false'
         env:
           PROFILE_README_TOKEN: ${{ secrets.PROFILE_README_TOKEN || secrets.SECRET_UPDATER_TOKEN }}
         run: |
